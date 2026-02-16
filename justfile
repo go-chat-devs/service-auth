@@ -1,3 +1,5 @@
+DB_URL := 'postgres://postgres:admin@localhost:7765/chat?sslmode=disable&x-migrations-table=schema_migrations_auth'
+
 create-val-postgres:
     docker volume create postgres-data
 
@@ -10,17 +12,17 @@ postgres-run:
     -v postgres-data:/var/lib/postgresql\
     -d postgres:18-bookworm
 
-migrations-up:
-    migrate -path migrations -database "postgres://postgres:admin@localhost:7765/chat?sslmode=disable" up
+migrate-up:
+    migrate -path migrations -database "{{DB_URL}}" up
 
-migrations-down:
-    migrate -path migrations -database "postgres://postgres:admin@localhost:7765/chat?sslmode=disable" down
+migrate-down:
+    migrate -path migrations -database "{{DB_URL}}" down
 
 migrate-force VERSION:
-    migrate -path migrations -database "postgres://postgres:admin@localhost:7765/chat?sslmode=disable" force {{VERSION}}
+    migrate -path migrations -database "{{DB_URL}}" force {{VERSION}}
 
 migrate-version:
-    migrate -path migrations -database "postgres://postgres:admin@localhost:7765/chat?sslmode=disable" version
+    migrate -path migrations -database "{{DB_URL}}" version
 
 migrate-create TITLE:
     migrate create --dir migrations --ext sql --seq {{TITLE}}
