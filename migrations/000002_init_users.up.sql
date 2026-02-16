@@ -6,3 +6,5 @@ CREATE TABLE IF NOT EXISTS auth.users (
 	password_hash TEXT NOT NULL UNIQUE,
 	two_fa_type auth.TWO_FA_TYPE DEFAULT 'disable'
 );
+
+
