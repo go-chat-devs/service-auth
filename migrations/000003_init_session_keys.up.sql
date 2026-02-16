@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS auth.session_keys(
+CREATE TABLE IF NOT EXISTS auth.session_keys (
 	id SERIAL PRIMARY KEY,
 	session_key TEXT NOT NULL UNIQUE,
 	uid UUID NOT NULL UNIQUE
