@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS two_factor_totp (
+	id SERIAL PRIMARY KEY,
+	user_uid UUID NOT NULL UNIQUE,
+	secret VARCHAR(32) NOT NULL
+);
