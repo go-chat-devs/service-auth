@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS auth.session_keys;
+DROP TABLE IF EXISTS auth.sessions;
