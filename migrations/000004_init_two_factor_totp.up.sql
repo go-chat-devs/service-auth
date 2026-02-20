@@ -1,5 +1,4 @@
 CREATE TABLE IF NOT EXISTS auth.two_factor_totp (
-	id SERIAL PRIMARY KEY,
-	user_uid UUID NOT NULL UNIQUE,
-	secret VARCHAR(32) NOT NULL
+	user_uid	UUID PRIMARY KEY,
+	secret		VARCHAR(32) NOT NULL
 );

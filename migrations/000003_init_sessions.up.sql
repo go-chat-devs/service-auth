@@ -1,5 +1,4 @@
 CREATE TABLE IF NOT EXISTS auth.sessions (
-	id SERIAL PRIMARY KEY,
-	session_key TEXT NOT NULL UNIQUE,
-	uid UUID NOT NULL UNIQUE
+	session_key	TEXT PRIMARY KEY,
+	user_uid		UUID NOT NULL UNIQUE
 );
