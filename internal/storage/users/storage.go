@@ -80,3 +80,14 @@ func (s *Storage) Select(ctx context.Context, id int) (*models.User, error) {
 	}
 	return res, nil
 }
+
+func (s *Storage) SelectEmail(ctx context.Context, email string) (*models.User, error) {
+	sql := "SELECT * FROM auth.users WHERE email=$1"
+	row := s.db.QueryRow(ctx, sql, email)
+	res, err := scanner.Row(row, models.UserFactory)
+	if err != nil {
+		slog.Error(tag("select email error: %v", err))
+		return nil, err
+	}
+	return res, nil
+}
