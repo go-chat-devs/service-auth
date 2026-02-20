@@ -2,11 +2,11 @@ package models
 
 import "github.com/jackc/pgx/v5"
 
-type two_fa_type string
+type TwoFA string
 
 const (
-	disable two_fa_type = "disable"
-	totp    two_fa_type = "totp"
+	TwoFA_Disable TwoFA = "disable"
+	TwoFA_TOTP    TwoFA = "totp"
 )
 
 type User struct {
@@ -14,7 +14,7 @@ type User struct {
 
 	Email        string
 	PasswordHash string
-	TwoFaType    two_fa_type
+	TwoFaType    TwoFA
 }
 
 func (m *User) FromRow(row pgx.Row) error {
