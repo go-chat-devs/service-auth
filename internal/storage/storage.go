@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/go-chat-devs/service-auth/internal/models"
+	"github.com/go-chat-devs/service-auth/internal/storage/pwdgen"
 	"github.com/go-chat-devs/service-auth/internal/storage/sessions"
 	twofactortotp "github.com/go-chat-devs/service-auth/internal/storage/two_factor_totp"
 	"github.com/go-chat-devs/service-auth/internal/storage/users"
@@ -43,7 +45,10 @@ func New(ctx context.Context) (*Storage, error) {
 	}, nil
 }
 
-func (s *Storage) CreateUser(ctx context.Context, email, password string) error
+func (s *Storage) CreateUser(ctx context.Context, email, password string) error {
+	hash := pwdgen.Generate([]byte(password))
+	return s.users.Insert(ctx, email, hash, models.TwoFA_Disable)
+}
 func (s *Storage) AuthenticateUser(ctx context.Context, email, password string) (string, error)
 func (s *Storage) ValidateTOTP(ctx context.Context, tempToken string, code string) (string, error)
 func (s *Storage) GetUserUID(ctx context.Context, token string) (uuid.UUID, error)
