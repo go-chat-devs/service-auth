@@ -14,6 +14,7 @@ import (
 )
 
 type Storage struct {
+	gw   *gateway
 	pool *pgxpool.Pool
 
 	users         *users.Storage
@@ -34,6 +35,7 @@ func New(ctx context.Context) (*Storage, error) {
 	}
 
 	return &Storage{
+		gw:            newGateway(ctx),
 		pool:          pool,
 		users:         users.New(pool),
 		sessions:      sessions.New(pool),
