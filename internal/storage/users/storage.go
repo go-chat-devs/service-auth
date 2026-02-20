@@ -25,8 +25,8 @@ func (s *Storage) WithTX(tx pgx.Tx) *Storage {
 	return &Storage{db: tx}
 }
 
-func (s *Storage) Insert(ctx context.Context, email string, passwordHash string, twoFaType models.TwoFA) error {
-	sql := "INSERT INTO auth.users (email,password_hash,two_fa_type) VALUES ($1,$2,$3)"
+func (s *Storage) Insert(ctx context.Context, email string, passwordHash []byte, twoFaType models.TwoFA) error {
+	sql := "INSERT INTO auth.users(email, password_hash, two_fa_type) VALUES($1,$2,$3)"
 	_, err := s.db.Exec(ctx, sql, email, passwordHash, twoFaType)
 	if err != nil {
 		slog.Error(tag("insert error: %v", err))
@@ -35,7 +35,7 @@ func (s *Storage) Insert(ctx context.Context, email string, passwordHash string,
 }
 
 func (s *Storage) Delete(ctx context.Context, id int) error {
-	sql := "INSERT * FROM auth.users WHERE id=$1;"
+	sql := "INSERT * FROM auth.users WHERE id=$1"
 	_, err := s.db.Exec(ctx, sql, id)
 	if err != nil {
 		slog.Error(tag("delete error: %v", err))
@@ -44,7 +44,7 @@ func (s *Storage) Delete(ctx context.Context, id int) error {
 }
 
 func (s *Storage) UpdateEmail(ctx context.Context, id int, newEmail string) error {
-	sql := "UPDATE auth.users SET email=$1 WHERE id=$2;"
+	sql := "UPDATE auth.users SET email=$1 WHERE id=$2"
 	_, err := s.db.Exec(ctx, sql, newEmail, id)
 	if err != nil {
 		slog.Error(tag("update email error: %v", err))
@@ -52,9 +52,9 @@ func (s *Storage) UpdateEmail(ctx context.Context, id int, newEmail string) erro
 	return err
 }
 
-func (s *Storage) UpdatePassword(ctx context.Context, id int, newPass string) error {
-	sql := "UPDATE auth.users SET password_hash=$1 WHERE id=$2;"
-	_, err := s.db.Exec(ctx, sql, newPass, id)
+func (s *Storage) UpdatePassword(ctx context.Context, id int, newHash []byte) error {
+	sql := "UPDATE auth.users SET password_hash=$1 WHERE id=$2"
+	_, err := s.db.Exec(ctx, sql, newHash, id)
 	if err != nil {
 		slog.Error(tag("update password error: %v", err))
 	}
@@ -62,7 +62,7 @@ func (s *Storage) UpdatePassword(ctx context.Context, id int, newPass string) er
 }
 
 func (s *Storage) Update2FA(ctx context.Context, id int, newType models.TwoFA) error {
-	sql := "UPDATE auth.users SET two_fa_type=$1 WHERE id=$2;"
+	sql := "UPDATE auth.users SET two_fa_type=$1 WHERE id=$2"
 	_, err := s.db.Exec(ctx, sql, newType, id)
 	if err != nil {
 		slog.Error(tag("update 2fa error: %v", err))
