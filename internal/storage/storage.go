@@ -9,14 +9,15 @@ import (
 	"github.com/go-chat-devs/service-auth/internal/storage/sessions"
 	twofactortotp "github.com/go-chat-devs/service-auth/internal/storage/two_factor_totp"
 	"github.com/go-chat-devs/service-auth/internal/storage/users"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Storage struct {
 	pool *pgxpool.Pool
 
-	users *users.Storage
-	sessions *sessions.Storage
+	users         *users.Storage
+	sessions      *sessions.Storage
 	twoFactorTotp *twofactortotp.Storage
 }
 
@@ -33,11 +34,15 @@ func New(ctx context.Context) (*Storage, error) {
 	}
 
 	return &Storage{
-		pool:  pool,
-		users: users.New(pool),
-		sessions: sessions.New(pool),
+		pool:          pool,
+		users:         users.New(pool),
+		sessions:      sessions.New(pool),
 		twoFactorTotp: twofactortotp.New(pool),
 	}, nil
 }
 
-
+func (s *Storage) CreateUser(ctx context.Context, email, password string) error
+func (s *Storage) AuthenticateUser(ctx context.Context, email, password string) (string, error)
+func (s *Storage) ValidateTOTP(ctx context.Context, tempToken string, code string) (string, error)
+func (s *Storage) GetUserUID(ctx context.Context, token string) (uuid.UUID, error)
+func (s *Storage) DeleteUser(ctx context.Context, token string, password string) error
