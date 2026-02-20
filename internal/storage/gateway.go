@@ -2,40 +2,26 @@ package storage
 
 import (
 	"context"
-	"crypto/rand"
 	"sync"
 	"time"
+
+	"github.com/go-chat-devs/service-auth/internal/token"
 )
 
-type tempToken = [32]byte
-
-type credentials struct {
-	email    string
-	password string
-}
-
 type tempEntry struct {
-	cred      credentials
+	userId    int
 	expiresAt time.Time
 }
 
 type gateway struct {
 	mx sync.RWMutex
-	mp map[tempToken]tempEntry
-}
-
-func generateTempToken() tempToken {
-	var t tempToken
-	if _, err := rand.Read(t[:]); err != nil {
-		panic(err)
-	}
-	return t
+	mp map[token.Token]tempEntry
 }
 
 func newGateway(ctx context.Context) *gateway {
 	g := &gateway{
 		mx: sync.RWMutex{},
-		mp: map[tempToken]tempEntry{},
+		mp: map[token.Token]tempEntry{},
 	}
 	go g.cleanupWorker(ctx)
 	return g
@@ -55,7 +41,7 @@ func (g *gateway) cleanupWorker(ctx context.Context) {
 
 func (g *gateway) cleanup() {
 	t := time.Now()
-	toDelete := make([]tempToken, 0, len(g.mp))
+	toDelete := make([]token.Token, 0, len(g.mp))
 	g.mx.Lock()
 	for k, v := range g.mp {
 		if t.After(v.expiresAt) {
@@ -68,18 +54,18 @@ func (g *gateway) cleanup() {
 	g.mx.Unlock()
 }
 
-func (g *gateway) Store(c credentials) tempToken {
-	t := generateTempToken()
+func (g *gateway) Store(userId int) token.Token {
+	t := token.Generate()
 	g.mx.Lock()
 	g.mp[t] = tempEntry{
-		cred:      c,
+		userId:    userId,
 		expiresAt: time.Now().Add(5 * time.Minute),
 	}
 	g.mx.Unlock()
 	return t
 }
 
-func (g *gateway) Get(token tempToken) (credentials, bool) {
+func (g *gateway) Get(token token.Token) (int, bool) {
 	g.mx.RLock()
 	entry, ok := g.mp[token]
 	g.mx.RUnlock()
@@ -90,16 +76,16 @@ func (g *gateway) Get(token tempToken) (credentials, bool) {
 			delete(g.mp, token)
 			g.mx.Unlock()
 		}
-		return credentials{}, false
+		return 0, false
 	}
 
-	return entry.cred, true
+	return entry.userId, true
 }
 
-func (g *gateway) Erase(token tempToken, cred credentials) {
+func (g *gateway) Erase(token token.Token, userId int) {
 	g.mx.Lock()
 	entry, ok := g.mp[token]
-	if ok && entry.cred == cred {
+	if ok && entry.userId == userId {
 		delete(g.mp, token)
 	}
 	g.mx.Unlock()
