@@ -34,45 +34,45 @@ func (s *Storage) Insert(ctx context.Context, email string, passwordHash []byte,
 	return err
 }
 
-func (s *Storage) Delete(ctx context.Context, id int) error {
+func (s *Storage) Delete(ctx context.Context, userID int) error {
 	sql := "INSERT * FROM auth.users WHERE id=$1"
-	_, err := s.db.Exec(ctx, sql, id)
+	_, err := s.db.Exec(ctx, sql, userID)
 	if err != nil {
 		slog.Error(tag("delete error: %v", err))
 	}
 	return err
 }
 
-func (s *Storage) UpdateEmail(ctx context.Context, id int, newEmail string) error {
+func (s *Storage) UpdateEmail(ctx context.Context, userID int, newEmail string) error {
 	sql := "UPDATE auth.users SET email=$1 WHERE id=$2"
-	_, err := s.db.Exec(ctx, sql, newEmail, id)
+	_, err := s.db.Exec(ctx, sql, newEmail, userID)
 	if err != nil {
 		slog.Error(tag("update email error: %v", err))
 	}
 	return err
 }
 
-func (s *Storage) UpdatePassword(ctx context.Context, id int, newHash []byte) error {
+func (s *Storage) UpdatePassword(ctx context.Context, userID int, newHash []byte) error {
 	sql := "UPDATE auth.users SET password_hash=$1 WHERE id=$2"
-	_, err := s.db.Exec(ctx, sql, newHash, id)
+	_, err := s.db.Exec(ctx, sql, newHash, userID)
 	if err != nil {
 		slog.Error(tag("update password error: %v", err))
 	}
 	return err
 }
 
-func (s *Storage) Update2FA(ctx context.Context, id int, newType models.TwoFA) error {
+func (s *Storage) Update2FA(ctx context.Context, userID int, newType models.TwoFA) error {
 	sql := "UPDATE auth.users SET two_fa_type=$1 WHERE id=$2"
-	_, err := s.db.Exec(ctx, sql, newType, id)
+	_, err := s.db.Exec(ctx, sql, newType, userID)
 	if err != nil {
 		slog.Error(tag("update 2fa error: %v", err))
 	}
 	return err
 }
 
-func (s *Storage) Select(ctx context.Context, id int) (*models.User, error) {
+func (s *Storage) Select(ctx context.Context, userID int) (*models.User, error) {
 	sql := "SELECT * FROM auth.users WHERE id=$1"
-	row := s.db.QueryRow(ctx, sql, id)
+	row := s.db.QueryRow(ctx, sql, userID)
 	res, err := scanner.Row(row, models.UserFactory)
 	if err != nil {
 		slog.Error(tag("select error: %v", err))

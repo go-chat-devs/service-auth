@@ -17,12 +17,14 @@ import (
 	"github.com/go-chat-devs/service-auth/internal/token"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 )
 
 type Storage struct {
-	gw   *gateway
-	pool *pgxpool.Pool
+	gwTotpValidate *gateway[int]
+	gwTotpSetup    *gateway[*otp.Key]
+	pool           *pgxpool.Pool
 
 	users         *users.Storage
 	sessions      *sessions.Storage
@@ -42,11 +44,11 @@ func New(ctx context.Context) (*Storage, error) {
 	}
 
 	return &Storage{
-		gw:            newGateway(ctx),
-		pool:          pool,
-		users:         users.New(pool),
-		sessions:      sessions.New(pool),
-		twoFactorTotp: twofactortotp.New(pool),
+		gwTotpValidate: newGateway[int](ctx),
+		pool:           pool,
+		users:          users.New(pool),
+		sessions:       sessions.New(pool),
+		twoFactorTotp:  twofactortotp.New(pool),
 	}, nil
 }
 
@@ -74,15 +76,78 @@ func (s *Storage) AuthenticateUser(ctx context.Context, email, password string) 
 			tok = sess.SessionKey
 			err = nil
 		case models.TwoFA_TOTP:
-			tok = s.gw.Store(user.ID)
+			tok = s.gwTotpValidate.Store(user.ID)
 			err = &custom_errors.Require2FA_TOTP{}
 		}
 		return nil
 	})
 	return
 }
+func (s *Storage) SetupTOTP_step1(ctx context.Context, sessionKey token.Token) (res struct {
+	Key   *otp.Key
+	Token token.Token
+}, err error) {
+	err = db.Transaction(ctx, s.pool, func(tx pgx.Tx) error {
+		Sessions := s.sessions.WithTX(tx)
+		sess, err := Sessions.Select(ctx, sessionKey)
+		if err != nil {
+			return err
+		}
+		Users := s.users.WithTX(tx)
+		user, err := Users.Select(ctx, sess.UserID)
+		if err != nil {
+			return err
+		}
+		if user.TwoFaType != models.TwoFA_Disable {
+			return errors.New("2fa already setup")
+		}
+		key, err := totp.Generate(totp.GenerateOpts{
+			Issuer:      "Go chat",
+			AccountName: user.Email,
+		})
+		if err != nil {
+			return err
+		}
+		tok := s.gwTotpSetup.Store(key)
+		res = struct {
+			Key   *otp.Key
+			Token token.Token
+		}{
+			Key:   key,
+			Token: tok,
+		}
+		return nil
+	})
+	return
+}
+func (s *Storage) SetupTOTP_step2(ctx context.Context, sessionKey, setup2fa token.Token, code string) (err error) {
+	key, ok := s.gwTotpSetup.Get(setup2fa)
+	if !ok {
+		return errors.New("expired token")
+	}
+	if !totp.Validate(code, key.Secret()) {
+		return errors.New("invalid code")
+	}
+	err = db.Transaction(ctx, s.pool, func(tx pgx.Tx) error {
+		Sessions := s.sessions.WithTX(tx)
+		sess, err := Sessions.Select(ctx, sessionKey)
+		if err != nil {
+			return err
+		}
+		Users := s.users.WithTX(tx)
+		if err = Users.Update2FA(ctx, sess.UserID, models.TwoFA_TOTP); err != nil {
+			return err
+		}
+		TOTP := s.twoFactorTotp.WithTX(tx)
+		return TOTP.Insert(ctx, sess.UserID, key.Secret())
+	})
+	if err == nil {
+		s.gwTotpSetup.Erase(setup2fa)
+	}
+	return err
+}
 func (s *Storage) ValidateTOTP(ctx context.Context, token2fa token.Token, code string) (sessionKey token.Token, err error) {
-	userId, ok := s.gw.Get(token2fa)
+	userId, ok := s.gwTotpValidate.Get(token2fa)
 	if !ok {
 		err = errors.New("expired token")
 		return
@@ -93,22 +158,30 @@ func (s *Storage) ValidateTOTP(ctx context.Context, token2fa token.Token, code s
 		if err != nil {
 			return err
 		}
-		Totp := s.twoFactorTotp.WithTX(tx)
-		entry, err := Totp.Select(ctx, usr.ID)
+		TOTP := s.twoFactorTotp.WithTX(tx)
+		entry, err := TOTP.Select(ctx, usr.ID)
+		if err != nil {
+			return err
+		}
 		if !totp.Validate(code, entry.Secret) {
 			return errors.New("invalid code")
 		}
 		Sessions := s.sessions.WithTX(tx)
 		sess, err := Sessions.Insert(ctx, userId)
+		if err != nil {
+			return err
+		}
 		sessionKey = sess.SessionKey
-		return err
+		return nil
 	})
+	if err == nil {
+		s.gwTotpValidate.Erase(token2fa)
+	}
 	return
 }
 func (s *Storage) GetUserID(ctx context.Context, sessionKey token.Token) (userId int, err error) {
 	sess, err := s.sessions.Select(ctx, sessionKey)
-	userId = sess.UserID
-	return
+	return sess.UserID, err
 }
 func (s *Storage) DeleteUser(ctx context.Context, sessionKey token.Token, password string) error {
 	return db.Transaction(ctx, s.pool, func(tx pgx.Tx) error {
