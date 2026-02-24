@@ -45,6 +45,7 @@ func New(ctx context.Context) (*Storage, error) {
 
 	return &Storage{
 		gwTotpValidate: newGateway[int](ctx),
+		gwTotpSetup:    newGateway[*otp.Key](ctx),
 		pool:           pool,
 		users:          users.New(pool),
 		sessions:       sessions.New(pool),
