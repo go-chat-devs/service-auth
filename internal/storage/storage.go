@@ -65,7 +65,7 @@ func (s *Storage) AuthenticateUser(ctx context.Context, email, password string) 
 			return err
 		}
 		if !pwdgen.Check([]byte(password), user.PasswordHash) {
-			return errors.New("invalid password")
+			return errors.New("invalid credentials")
 		}
 		switch user.TwoFaType {
 		case models.TwoFA_Disable:
@@ -197,7 +197,7 @@ func (s *Storage) DeleteUser(ctx context.Context, sessionKey token.Token, passwo
 			return err
 		}
 		if !pwdgen.Check([]byte(password), user.PasswordHash) {
-			return errors.New("invalid password")
+			return errors.New("invalid credentials")
 		}
 		return Users.Delete(ctx, user.ID)
 	})
