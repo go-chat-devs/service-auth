@@ -118,38 +118,36 @@ func (s *ServerApi) SetuptTOTPValidate(ctx context.Context, req *authv1.SetupTOT
 	if err := ValidateSetupTOTPValidate(req); err != nil {
 		return nil, err
 	}
-	err := s.auth.SetupTOTPValidate(ctx,token.Token(req.GetSessionkey()),token.Token(req.GetSetup2Fa()),req.GetCode())
-	if err != nil{
-		return nil, status.Error(codes.Internal,"internal")
+	err := s.auth.SetupTOTPValidate(ctx, token.Token(req.GetSessionkey()), token.Token(req.GetSetup2Fa()), req.GetCode())
+	if err != nil {
+		return nil, status.Error(codes.Internal, "internal")
 	}
-	return &authv1.SetupTOTPValidateResponse{},nil
+	return &authv1.SetupTOTPValidateResponse{}, nil
 }
 
-
-func (s *ServerApi) ValidateTOTP(ctx context.Context, req *authv1.ValidateTOTPRequest) (*authv1.ValidateTOTPResponse, error){
-	if err := ValidationTOTP(req); err != nil{
-		return nil,err
+func (s *ServerApi) ValidateTOTP(ctx context.Context, req *authv1.ValidateTOTPRequest) (*authv1.ValidateTOTPResponse, error) {
+	if err := ValidationTOTP(req); err != nil {
+		return nil, err
 	}
-	sessionkey,err := s.auth.ValidateTOTP(ctx,token.Token(req.GetToken2Fa()),req.GetCode())
-	if err != nil{
-		return nil,status.Error(codes.Internal,"internal error")
+	sessionkey, err := s.auth.ValidateTOTP(ctx, token.Token(req.GetToken2Fa()), req.GetCode())
+	if err != nil {
+		return nil, status.Error(codes.Internal, "internal error")
 	}
 	return &authv1.ValidateTOTPResponse{
 		Sessionkey: sessionkey[:],
-	},nil
+	}, nil
 }
 
-
-func (s *ServerApi) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error){
-	if err := ValidateLogout(req); err != nil{
-		return nil,err
+func (s *ServerApi) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error) {
+	if err := ValidateLogout(req); err != nil {
+		return nil, err
 	}
-	err := s.auth.Logout(ctx,token.Token(req.GetSessionkey()),req.GetPassword())
-	if err != nil{
-		if errors.Is(err,errors.New("invalid credentials")){
-			return nil,status.Error(codes.InvalidArgument,"invalid arguments")
+	err := s.auth.Logout(ctx, token.Token(req.GetSessionkey()), req.GetPassword())
+	if err != nil {
+		if errors.Is(err, errors.New("invalid credentials")) {
+			return nil, status.Error(codes.InvalidArgument, "invalid arguments")
 		}
 		return nil, status.Error(codes.Internal, "internal error")
 	}
-	return &authv1.LogoutResponse{},nil
+	return &authv1.LogoutResponse{}, nil
 }
