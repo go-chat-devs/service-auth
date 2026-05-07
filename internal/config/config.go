@@ -9,10 +9,10 @@ import (
 )
 
 type Config struct {
-	Env         string        `yaml:"env" env-default:"local"`
+	Env        string        `yaml:"env" env-default:"local"`
 	StorageUrl string        `yaml:"storage_url" env-required:"true"`
-	TokenTTL    time.Duration `yaml:"token_ttl" env-required:"true"`
-	GRPC        GRPCConfig    `yaml:"grpc"`
+	TokenTTL   time.Duration `yaml:"token_ttl" env-required:"true"`
+	GRPC       GRPCConfig    `yaml:"grpc"`
 }
 
 type GRPCConfig struct {
@@ -26,7 +26,7 @@ func MustLoad() *Config {
 		panic("config path is empty")
 	}
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		panic("config file does not exist" + path)
+		panic("config file does not exist " + path)
 
 	}
 	var cfg Config
@@ -37,6 +37,7 @@ func MustLoad() *Config {
 }
 
 func fetchConfigPath() string {
+
 	var res string
 	flag.StringVar(&res, "config", "", "path to config file")
 	flag.Parse()

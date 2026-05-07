@@ -1,5 +1,5 @@
 env: "local"
-storage_url: "postgres://postgres:admin@localhost:7765/chat?sslmode=disable&x-migrations-table=schema_migrations_auth"
+storage_url: "postgres://postgres:admin@localhost:7765/chat?sslmode=disable"
 token_ttl: 1h
 grpc:
   port: 44044

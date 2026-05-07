@@ -21,7 +21,7 @@ func New(
 	storageURL string,
 	tokenTTL time.Duration,
 ) *App {
-	storage, err := storage.New(ctx)
+	storage, err := storage.New(ctx,storageURL)
 	if err != nil {
 		panic(err)
 	}

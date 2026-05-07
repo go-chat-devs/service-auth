@@ -26,3 +26,6 @@ migrate-version:
 
 migrate-create TITLE:
     migrate create --dir migrations --ext sql --seq {{TITLE}}
+
+run:
+    go run cmd/service-auth/main.go -config config/local.yaml

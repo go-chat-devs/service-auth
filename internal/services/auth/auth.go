@@ -211,5 +211,6 @@ func (a *Auth) Logout(
 		log.Error("logout failed")
 		return fmt.Errorf("%s: %w", op, err)
 	}
+	slog.Info("logout succesfully")
 	return
 }

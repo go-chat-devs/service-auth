@@ -28,8 +28,9 @@ func (s *Storage) WithTX(tx pgx.Tx) *Storage {
 
 func (s *Storage) Insert(ctx context.Context, userID int) (*models.Session, error) {
 	sessionKey := token.Generate()
+	sessionKeySlice := sessionKey[:] 
 	sql := "INSERT INTO auth.sessions(session_key, user_id) VALUES($1, $2)"
-	_, err := s.db.Exec(ctx, sql, sessionKey, userID)
+	_, err := s.db.Exec(ctx, sql, sessionKeySlice, userID)
 	if err != nil {
 		slog.Error(tag("insert error: %v", err))
 	}
@@ -40,8 +41,9 @@ func (s *Storage) Insert(ctx context.Context, userID int) (*models.Session, erro
 }
 
 func (s *Storage) Delete(ctx context.Context, sessionKey token.Token) error {
-	sql := "DELETE * FROM auth.sessions WHERE session_key=$1"
-	_, err := s.db.Exec(ctx, sql, sessionKey)
+	sessionKeySlice := sessionKey[:]
+	sql := "DELETE FROM auth.sessions WHERE session_key=$1"
+	_, err := s.db.Exec(ctx, sql, sessionKeySlice)
 	if err != nil {
 		slog.Error(tag("delete error: %v", err))
 	}
