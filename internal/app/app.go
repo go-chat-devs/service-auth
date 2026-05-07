@@ -6,6 +6,8 @@ import (
 	"time"
 
 	grpcapp "github.com/go-chat-devs/service-auth/internal/app/grpc"
+	"github.com/go-chat-devs/service-auth/internal/services/auth"
+	"github.com/go-chat-devs/service-auth/internal/storage"
 )
 
 type App struct {
@@ -19,6 +21,15 @@ func New(
 	storageURL string,
 	tokenTTL time.Duration,
 ) *App {
-	//Implement this in future
-	return &App{}
+	storage, err := storage.New(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	authserivce := auth.New(log, storage, storage, storage,tokenTTL)
+	grpcApp := grpcapp.New(log, authserivce, grpcPort)
+
+	return &App{
+		GRPCSrv: grpcApp,
+	}
 }
