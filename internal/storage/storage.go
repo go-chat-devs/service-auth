@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"os"
 
 	custom_errors "github.com/go-chat-devs/service-auth/internal/errors"
 	"github.com/go-chat-devs/service-auth/internal/models"
@@ -31,17 +30,27 @@ type Storage struct {
 	twoFactorTotp *twofactortotp.Storage
 }
 
-func New(ctx context.Context) (*Storage, error) {
-	cfg, err := pgxpool.ParseConfig(os.Getenv("DB_URL"))
+func New(ctx context.Context, storageUrl string) (*Storage, error) {
+	cfg, err := pgxpool.ParseConfig(storageUrl)
 	if err != nil {
 		slog.Error(fmt.Sprintf("error parsing connection config: %v", err))
 		return nil, err
 	}
+	slog.Info("Database config",
+		"host", cfg.ConnConfig.Host,
+		"port", cfg.ConnConfig.Port,
+		"user", cfg.ConnConfig.User,
+		"database", cfg.ConnConfig.Database)
 	pool, err := pgxpool.NewWithConfig(ctx, cfg)
 	if err != nil {
 		slog.Error(fmt.Sprintf("error creating connection pool: %v", err))
 		return nil, err
 	}
+	if err := pool.Ping(ctx); err != nil {
+		slog.Error("Failed to ping database", "error", err)
+		return nil, fmt.Errorf("database ping failed: %w", err)
+	}
+	slog.Info("Database connection established successfully")
 
 	return &Storage{
 		gwTotpValidate: newGateway[int](ctx),
@@ -199,6 +208,24 @@ func (s *Storage) DeleteUser(ctx context.Context, sessionKey token.Token, passwo
 		if !pwdgen.Check([]byte(password), user.PasswordHash) {
 			return errors.New("invalid credentials")
 		}
+		if err := Sessions.DeleteAll(ctx,sess.UserID); err != nil{
+			return err
+		}
 		return Users.Delete(ctx, user.ID)
+	})
+}
+
+func (s *Storage) DeleteSession(ctx context.Context, sessionKey token.Token) error {
+	return db.Transaction(ctx, s.pool, func(tx pgx.Tx) error {
+		Sessions := s.sessions.WithTX(tx)
+		return Sessions.Delete(ctx, sessionKey)
+	})
+}
+
+
+func (s *Storage) DeleteAllSessions(ctx context.Context, userID int) error{
+	return db.Transaction(ctx, s.pool, func(tx pgx.Tx) error {
+		Sessions := s.sessions.WithTX(tx)
+		return Sessions.DeleteAll(ctx,userID)
 	})
 }

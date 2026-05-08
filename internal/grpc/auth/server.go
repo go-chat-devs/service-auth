@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	authv1 "github.com/go-chat-devs/proto-auth-x-gateway/gen/go/auth"
+	custom_errors "github.com/go-chat-devs/service-auth/internal/errors"
 	"github.com/go-chat-devs/service-auth/internal/token"
 	"github.com/pquerna/otp"
 	"google.golang.org/grpc"
@@ -45,6 +46,10 @@ type Auth interface {
 	Logout(
 		ctx context.Context,
 		sessionkey token.Token,
+	) (err error)
+	DeleteAccount(
+		ctx context.Context,
+		sessionkey token.Token,
 		password string,
 	) (err error)
 }
@@ -65,7 +70,7 @@ func (s *ServerApi) Register(ctx context.Context, req *authv1.RegisterRequest) (
 	}
 	err := s.auth.Register(ctx, req.GetEmail(), req.GetPassword())
 	if err != nil {
-		if errors.Is(err, errors.New("user already exists")) {
+		if errors.Is(err, custom_errors.ErrUserExists) {
 			return nil, status.Error(codes.AlreadyExists, "user already exists")
 		}
 		return nil, status.Error(codes.Internal, "internal error")
@@ -80,9 +85,15 @@ func (s *ServerApi) Login(ctx context.Context, req *authv1.LoginRequest) (*authv
 	}
 	token, err := s.auth.Login(ctx, req.GetEmail(), req.GetPassword())
 	if err != nil {
-		if errors.Is(err, errors.New("Invalid credentials")) {
+		var require2FA *custom_errors.Require2FA_TOTP
+		if errors.As(err, &require2FA) {
+			return nil, status.Error(codes.PermissionDenied, "2FA required")
+		}
+
+		if errors.Is(err, custom_errors.ErrInvalidCredentials) {
 			return nil, status.Error(codes.InvalidArgument, "invalid arguments")
 		}
+
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
@@ -142,12 +153,28 @@ func (s *ServerApi) Logout(ctx context.Context, req *authv1.LogoutRequest) (*aut
 	if err := ValidateLogout(req); err != nil {
 		return nil, err
 	}
-	err := s.auth.Logout(ctx, token.Token(req.GetSessionkey()), req.GetPassword())
+	err := s.auth.Logout(ctx, token.Token(req.GetSessionkey()))
 	if err != nil {
-		if errors.Is(err, errors.New("invalid credentials")) {
+		if errors.Is(err, custom_errors.ErrInvalidCredentials) {
 			return nil, status.Error(codes.InvalidArgument, "invalid arguments")
 		}
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 	return &authv1.LogoutResponse{}, nil
+}
+
+
+func (s *ServerApi) DeleteAccount(ctx context.Context, req *authv1.DeleteAccountRequest) (*authv1.DeleteAccountResponse,error){
+	if err := ValidateDeleteAccount(req); err != nil{
+		return nil,err
+	}
+	err := s.auth.DeleteAccount(ctx,token.Token(req.GetSessionkey()),req.GetPassword())
+	if err != nil{
+		if errors.Is(err,custom_errors.ErrInvalidCredentials) {
+			return nil,status.Error(codes.InvalidArgument,"invalid arguments")
+		}
+		return nil,status.Error(codes.Internal,"internal error")
+	}
+
+	return &authv1.DeleteAccountResponse{},nil
 }

@@ -60,11 +60,20 @@ func ValidationTOTP(req *authv1.ValidateTOTPRequest) error{
 
 
 func ValidateLogout(req *authv1.LogoutRequest) error{
-	if len(req.GetPassword()) == 0{
-		return status.Error(codes.InvalidArgument,"empty password")
-	}
 	if len(req.GetSessionkey()) == 0{
 		return status.Error(codes.InvalidArgument,"empty session key")
 	}
 	return nil
+}
+
+
+func ValidateDeleteAccount(req *authv1.DeleteAccountRequest) error{
+	if len(req.GetSessionkey()) == 0{
+		return status.Error(codes.InvalidArgument,"empty session key")
+	}
+	if req.GetPassword() == "" {
+		return status.Error(codes.InvalidArgument, "empty password")
+	}
+	return nil
+
 }
