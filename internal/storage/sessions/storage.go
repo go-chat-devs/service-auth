@@ -60,3 +60,13 @@ func (s *Storage) Select(ctx context.Context, sessionKey token.Token) (*models.S
 	}
 	return res, nil
 }
+
+
+func (s *Storage) DeleteAll(ctx context.Context, userID int) error {
+	sql := "DELETE FROM auth.sessions WHERE user_id=$1"
+	_,err := s.db.Exec(ctx,sql,userID)
+	if err != nil{
+		slog.Error(tag("delete error: %v",err))
+	}
+	return err
+}

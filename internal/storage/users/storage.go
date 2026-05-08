@@ -35,7 +35,7 @@ func (s *Storage) Insert(ctx context.Context, email string, passwordHash []byte,
 }
 
 func (s *Storage) Delete(ctx context.Context, userID int) error {
-	sql := "DELETE  FROM auth.users WHERE id=$1"
+	sql := "DELETE FROM auth.users WHERE id=$1"
 	_, err := s.db.Exec(ctx, sql, userID)
 	if err != nil {
 		slog.Error(tag("delete error: %v", err))

@@ -45,6 +45,7 @@ type UserManager interface {
 
 type SessionManager interface {
 	DeleteSession(ctx context.Context, sessionKey token.Token) error
+	DeleteAllSessions(ctx context.Context, userID int) error
 }
 
 type TOTPManager interface {
@@ -202,7 +203,6 @@ func (a *Auth) ValidateTOTP(
 func (a *Auth) Logout(
 	ctx context.Context,
 	sessionkey token.Token,
-	password string,
 ) (err error) {
 	const op = "auth.Logout"
 	log := a.log.With(slog.String("op", op))
@@ -212,5 +212,20 @@ func (a *Auth) Logout(
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	slog.Info("logout succesfully")
+	return
+}
+
+func (a *Auth) DeleteAccount(ctx context.Context, sessionkey token.Token, password string) (err error) {
+	const op = "auth.DeleteAccount"
+	log := a.log.With(slog.String("op", op))
+	err = a.DeleteAccount(ctx, sessionkey, password)
+	if err != nil {
+		if errors.Is(err, custom_errors.ErrInvalidCredentials) {
+			log.Error("invalid credentials", slog.String("err", err.Error()))
+			return fmt.Errorf("%s: %w", op, err)
+		}
+		log.Error("failed to delete user account", slog.String("error", err.Error()))
+		return fmt.Errorf("%s: %w", op, err)
+	}
 	return
 }

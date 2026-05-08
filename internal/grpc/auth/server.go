@@ -46,6 +46,10 @@ type Auth interface {
 	Logout(
 		ctx context.Context,
 		sessionkey token.Token,
+	) (err error)
+	DeleteAccount(
+		ctx context.Context,
+		sessionkey token.Token,
 		password string,
 	) (err error)
 }
@@ -149,12 +153,28 @@ func (s *ServerApi) Logout(ctx context.Context, req *authv1.LogoutRequest) (*aut
 	if err := ValidateLogout(req); err != nil {
 		return nil, err
 	}
-	err := s.auth.Logout(ctx, token.Token(req.GetSessionkey()), req.GetPassword())
+	err := s.auth.Logout(ctx, token.Token(req.GetSessionkey()))
 	if err != nil {
-		if errors.Is(err, errors.New("invalid credentials")) {
+		if errors.Is(err, custom_errors.ErrInvalidCredentials) {
 			return nil, status.Error(codes.InvalidArgument, "invalid arguments")
 		}
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 	return &authv1.LogoutResponse{}, nil
+}
+
+
+func (s *ServerApi) DeleteAccount(ctx context.Context, req *authv1.DeleteAccountRequest) (*authv1.DeleteAccountResponse,error){
+	if err := ValidateDeleteAccount(req); err != nil{
+		return nil,err
+	}
+	err := s.auth.DeleteAccount(ctx,token.Token(req.GetSessionkey()),req.GetPassword())
+	if err != nil{
+		if errors.Is(err,custom_errors.ErrInvalidCredentials) {
+			return nil,status.Error(codes.InvalidArgument,"invalid arguments")
+		}
+		return nil,status.Error(codes.Internal,"internal error")
+	}
+
+	return &authv1.DeleteAccountResponse{},nil
 }
